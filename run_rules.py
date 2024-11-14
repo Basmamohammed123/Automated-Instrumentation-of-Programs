@@ -92,6 +92,31 @@ def extract_first_last_line_numbers(semgrep_output):
 
     return blocks
 
+def get_blocks_from_file(file_path, line_number_blocks):
+    """
+    Get the content of each block based on line number ranges and store each block as a string in a list.
+
+    Parameters:
+    file_path (str): Path to the file to read from.
+    line_number_blocks (list of tuples): Each tuple contains the first and last line numbers of a block.
+
+    Returns:
+    list: Each element in the list is a string representing the content of a block.
+    """
+    # Read the file into a list of lines
+    with open(file_path, "r") as f:
+        lines = f.readlines()
+
+    # List to store the content of each block
+    blocks_content = []
+
+    # Iterate through each line number range and capture the corresponding block content
+    for first, last in line_number_blocks:
+        block_content = "".join(lines[first - 1:last])  # Extract and join lines in the range
+        blocks_content.append(block_content)  # Store the block as a single string in the list
+
+    return blocks_content
+
 def insert_statements(file_path, blocks, statement):
     """
     Insert a comment statement before the first line of each block in the specified file.
@@ -135,9 +160,13 @@ def main():
     print("Semgrep Findings:\n", findings)
 
     line_number_blocks = extract_first_last_line_numbers(findings)
-    for i, (first, last) in enumerate(line_number_blocks, 1):
-        print(f"Block {i}: First line number = {first}, Last line number = {last}")
-    insert_statements(target_file, line_number_blocks, statement)
+    #for i, (first, last) in enumerate(line_number_blocks, 1):
+     #   print(f"Block {i}: First line number = {first}, Last line number = {last}")
+    #insert_statements(target_file, line_number_blocks, statement)
+    
+    blocks_content = get_blocks_from_file(target_file, line_number_blocks)
+    for i, content in enumerate(blocks_content, 1):
+        print(f"Block {i} Content:\n{content}\n")
 
 if __name__ == "__main__":
     main()
