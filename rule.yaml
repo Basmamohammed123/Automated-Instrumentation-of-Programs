@@ -1,0 +1,41 @@
+rules:
+  # Rule to detect method definitions
+  - id: method_detection
+    pattern: |
+      def $FUNC(...):
+        ...
+    message: "Semgrep found a method definition: $FUNC"
+    languages:
+      - python
+    severity: WARNING
+
+  # Rule to detect for loops
+  - id: for_loop_detection
+    pattern: |
+      for $VAR in $ITERABLE:
+        ...
+    message: "Semgrep found a for loop iterating over $ITERABLE"
+    languages:
+      - python
+    severity: INFO
+
+  # Rule to detect if statements
+  - id: if_statement_detection
+    pattern: |
+      if $COND:
+        ...
+    message: "Semgrep found an if statement with condition: $COND"
+    languages:
+      - python
+    severity: INFO
+
+  # Rule to detect while loops
+  - id: while_loop_detection
+    pattern: |
+      while $COND:
+        ...
+    message: "Semgrep found a while loop with condition: $COND"
+    languages:
+      - python
+    severity: INFO
+
