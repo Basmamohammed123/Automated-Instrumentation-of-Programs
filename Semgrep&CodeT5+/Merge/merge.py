@@ -60,7 +60,7 @@ def run_semgrep(rule_file, target_file):
 
 def extract_first_last_line_numbers(semgrep_output):
     """
-    Extracts the first and last line numbers from each block of findings in the Semgrep output.
+    Extracts first and last line numbers from the Semgrep output, including support for nested blocks.
 
     Parameters:
     semgrep_output (str): The raw output from Semgrep.
@@ -69,36 +69,46 @@ def extract_first_last_line_numbers(semgrep_output):
     list of tuples: Each tuple contains the first and last line numbers of a block.
     """
     blocks = []
-    first_line_number = None
-    last_line_number = None
-    in_block = False  # Flag to track when we're inside a block
+    current_stack = []  # Stack to manage nested blocks
+    in_block = False
 
     for line in semgrep_output.splitlines():
-        # Detect the start of a block based on "Semgrep found"
         if "Semgrep found" in line:
-            # If we're already capturing a block, finalize it before starting a new one
-            first_line_number = None  # Reset for the new block
-            last_line_number = None
-            in_block = True  # Start capturing lines in the new block
-        elif "┆----------------------------------------" in line or "❯❱" in line or "❱" in line:
-            # Separator line signals the end of the current block
-            if first_line_number is not None and last_line_number is not None:
-                blocks.append((first_line_number, last_line_number))
-            in_block = False  # Stop capturing until the next "Semgrep found" line
+            # Close the current block if we're starting a new one
+            if current_stack:
+                first_line_number, last_line_number = current_stack.pop()
+                if first_line_number and last_line_number:
+                    blocks.append((first_line_number, last_line_number))
+            current_stack.clear()
+            in_block = True
+
+        elif "┆----------------------------------------" in line:
+            # Finalize the current block
+            if current_stack:
+                first_line_number, last_line_number = current_stack.pop()
+                if first_line_number and last_line_number:
+                    blocks.append((first_line_number, last_line_number))
+            in_block = False
+
         elif in_block and re.match(r"^(\d+)┆", line.strip()):
-            # Capture line numbers that start with a digit followed by "┆"
+            # Match line numbers and manage nested contexts
             match = re.match(r"^(\d+)┆", line.strip())
             if match:
                 line_number = int(match.group(1))
-                if first_line_number is None:
-                    # This is the first line number in the block
-                    first_line_number = line_number
-                # Continuously update the last line number until the end of the block
-                last_line_number = line_number
 
-    # Add the last block if there was no trailing separator
-    if first_line_number is not None and last_line_number is not None:
-        blocks.append((first_line_number, last_line_number))
+                if not current_stack:
+                    # Start a new block
+                    current_stack.append((line_number, line_number))
+                else:
+                    # Update the last line number of the current block
+                    first_line_number, last_line_number = current_stack[-1]
+                    current_stack[-1] = (first_line_number, line_number)
+
+    # Ensure any remaining block in the stack is added
+    if current_stack:
+        first_line_number, last_line_number = current_stack.pop()
+        if first_line_number and last_line_number:
+            blocks.append((first_line_number, last_line_number))
 
     return blocks
 
@@ -128,20 +138,59 @@ def get_blocks_from_file(file_path, line_number_blocks):
     return blocks_content
 
 # Function to add summary after the function header
-def add_summary_to_function(function_code, summary):
+def add_comment_before_block(block_code, summary):
     """
-    Inserts the summary below the function header.
-    """
-    lines = function_code.splitlines()
-    result = []
-    for i, line in enumerate(lines):
-        if i == 0:  # Function header
-            result.append(line)
-            result.append(f'    """ {summary} """')  # Add summary
-        else:
-            result.append(line)
-    return "\n".join(result)
+    Inserts the summary as a `# summary` comment before the block.
 
+    Parameters:
+    - block_code (str): The code block as a string.
+    - summary (str): The summary to insert as a comment.
+
+    Returns:
+    - str: The updated block with the `# summary` comment inserted before it.
+    """
+    lines = block_code.splitlines(keepends=True)  # Preserve original line endings
+    if not lines:  # Handle empty blocks gracefully
+        return ""
+
+    # Determine the indentation of the first line in the block
+    indent = " " * (len(lines[0]) - len(lines[0].lstrip()))
+    comment = f"{indent}# {summary}\n"  # Align comment with block's indentation
+    return comment + "".join(lines)  # Prepend comment to the block
+
+def apply_summaries_to_file(file_path, line_number_blocks, summaries):
+    """
+    Inserts summaries as comments before the blocks in the given file.
+
+    Parameters:
+    file_path (str): Path to the file to modify.
+    line_number_blocks (list of tuples): Each tuple contains the line range of a block.
+    summaries (list): Summaries to insert as comments.
+    """
+    with open(file_path, "r") as f:
+        lines = f.readlines()
+
+    # Offset to adjust line numbers as comments are added
+    line_offset = 0
+
+    for (first, last), summary in zip(line_number_blocks, summaries):
+        # Adjust for any offset introduced by previous comment additions
+        adjusted_first = first - 1 + line_offset
+        adjusted_last = last - 1 + line_offset
+
+        # Extract the block and add the comment
+        block_lines = lines[adjusted_first:adjusted_last + 1]
+        updated_block = add_comment_before_block("".join(block_lines), summary)
+
+        # Replace the original block with the updated block
+        lines[adjusted_first:adjusted_last + 1] = updated_block.splitlines(keepends=True)
+
+        # Update line offset to account for the added comment line
+        line_offset += 1  # Only one line added per block
+
+    # Write the updated content back to the file
+    with open(file_path, "w") as f:
+        f.writelines(lines)
 
 def main():
     # Input and output file paths
@@ -160,7 +209,7 @@ def main():
     for i, content in enumerate(blocks_content, 1):
         print(f"Block {i} Content:\n{content}\n")
 
-    annotated_functions = []
+    summaries = []
     for func in blocks_content:
         # Tokenize the function code
         input_ids = tokenizer(func, return_tensors="pt").input_ids.to(device)
@@ -169,17 +218,9 @@ def main():
         generated_ids = model.generate(input_ids, max_length=200)
         summary = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
     
-        # Add the summary to the function
-        annotated_function = add_summary_to_function(func, summary)
-        annotated_functions.append(annotated_function)
+        summaries.append(summary)
 
-    # Combine the annotated functions back into a single code block
-    annotated_code = "\n\n".join(annotated_functions)
-
-    # Write the annotated code to the output file
-    with open(output_file, "w") as file:
-        file.write(annotated_code)
+    apply_summaries_to_file(target_file, line_number_blocks, summaries)
 
 if __name__ == "__main__":
     main()
-

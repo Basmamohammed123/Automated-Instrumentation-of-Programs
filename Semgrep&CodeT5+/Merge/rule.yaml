@@ -39,3 +39,21 @@ rules:
       - python
     severity: INFO
 
+  # Rule to detect variable declarations 
+  - id: variable_declaration_detection
+    pattern: |
+      $VAR = $VALUE
+    message: "Semgrep found a variable declaration: $VAR"
+    languages:
+      - python
+    severity: INFO
+
+  # Rule to detect class definitions 
+  - id: class_definition_detection
+    pattern: |
+      class $CLASS(...):
+        ...
+    message: "Semgrep found a class definition: $CLASS"
+    languages:
+      - python
+    severity: WARNING

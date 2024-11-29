@@ -1,9 +1,11 @@
 How to run:
 1) In the terminal, add a Ubuntu (wsl) terminal
-3) Create a new virtual environment
-   - python -m venv .venv
-   - .venv\Scripts\activate
+2) Create a new virtual environment
+   - python3 -m venv .venv
    - source .venv/bin/activate
-4) run run_rules.py by running the following command
-   - python3 run_rules.py
-  
+3) Navigate to the Merge folder
+4) run merge.py by running the following command
+   - python3 merge.py
+
+Note: you must have all the dependencies required to run the file. This includes the following: pip install transformers datasets torch
+
