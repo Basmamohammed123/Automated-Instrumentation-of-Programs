@@ -160,42 +160,31 @@ def add_comment_before_block(block_code, summary):
 
 def apply_summaries_to_file(file_path, line_number_blocks, summaries):
     """
-    Inserts summaries as comments before the blocks in the given file.
+    Inserts LLM-generated summaries as comments before the detected blocks in the file.
 
     Parameters:
     file_path (str): Path to the file to modify.
-    line_number_blocks (list of tuples): Each tuple contains the line range of a block.
-    summaries (list): Summaries to insert as comments.
+    line_number_blocks (list of tuples): Line ranges of detected blocks.
+    summaries (list): Generated summaries to insert as tracing comments.
     """
     with open(file_path, "r") as f:
         lines = f.readlines()
 
-    # Offset to adjust line numbers as comments are added
-    line_offset = 0
+    # Create a mapping of line numbers to summaries to insert as comments
+    insertions = {first: f"# Tracing: {summary}\n" for (first, _), summary in zip(line_number_blocks, summaries)}
 
-    for (first, last), summary in zip(line_number_blocks, summaries):
-        # Adjust for any offset introduced by previous comment additions
-        adjusted_first = first - 1 + line_offset
-        adjusted_last = last - 1 + line_offset
+    # Build the modified file content
+    updated_lines = []
+    for i, line in enumerate(lines, start=1):
+        if i in insertions:  # Check if there's a comment for this line
+            updated_lines.append(insertions[i])  # Add the tracing comment
+        updated_lines.append(line)  # Add the original line
 
-        # Extract the block and add the comment
-        block_lines = lines[adjusted_first:adjusted_last + 1]
-        updated_block = add_comment_before_block("".join(block_lines), summary)
-
-        # Replace the original block with the updated block
-        lines[adjusted_first:adjusted_last + 1] = updated_block.splitlines(keepends=True)
-
-        # Update line offset to account for the added comment line
-        line_offset += 1  # Only one line added per block
-
-    # Write the updated content back to the file
+    # Write the updated content back to the file in one operation
     with open(file_path, "w") as f:
-        f.writelines(lines)
+        f.writelines(updated_lines)
 
 def main():
-    # Input and output file paths
-    output_file = "output.py"
-
     # Define paths
     rule_file = os.path.expanduser("./rule.yaml")
     target_file = os.path.expanduser("./test_code.py")
