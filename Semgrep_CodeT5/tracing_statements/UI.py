@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from tkinter import ttk
-from Semgrep_CodeT5 import tracing_statements
+import generate_tracing_statements
 
 def upload_file():
     file_path = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt"), ("Python Files", "*.py"), ("All Files", "*.*")])
@@ -27,7 +27,7 @@ def parse_content():
 
     update_status("Parsing started...")
     progress_bar.start(10)  # Simulate progress
-    tracing_statements.generate_tracing_statements.main()
+    generate_tracing_statements.main()
 
 def finish_parsing():
     progress_bar.stop()
