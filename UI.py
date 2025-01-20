@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from tkinter import ttk
+from Semgrep_CodeT5 import tracing_statements
 
 def upload_file():
     file_path = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt"), ("Python Files", "*.py"), ("All Files", "*.*")])
@@ -26,7 +27,7 @@ def parse_content():
 
     update_status("Parsing started...")
     progress_bar.start(10)  # Simulate progress
-    root.after(1000, finish_parsing)  # Simulate delay (1 second)
+    tracing_statements.generate_tracing_statements.main()
 
 def finish_parsing():
     progress_bar.stop()
@@ -37,8 +38,12 @@ def update_status(message):
     status_label.config(text=message)
 
 def save_file():
+    print(f"Root exists: {root.winfo_exists()}")
+
     file_path = filedialog.asksaveasfilename(defaultextension=".txt",
                                              filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
+    print(f"Selected path: {file_path}")
+
     if file_path:
         try:
             with open(file_path, 'w') as file:
@@ -101,3 +106,21 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+    """
+    
+def multiply(a, lst):
+    while a > 0:
+        for i in lst:
+            i + a
+    return lst
+
+
+def divide(a, b):
+    return a / b
+    
+    
+    
+    """
