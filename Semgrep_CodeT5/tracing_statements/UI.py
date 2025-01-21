@@ -1,111 +1,85 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
 from tkinter import ttk
-import generate_tracing_statements
+import os
 
-def upload_file():
-    file_path = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt"), ("Python Files", "*.py"), ("All Files", "*.*")])
-    if file_path:
-        try:
-            with open(file_path, 'r') as file:
-                content = file.read()
-                text_box.delete(1.0, tk.END)
-                text_box.insert(tk.END, content)
-            update_status("File loaded successfully.")
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to load file: {str(e)}")
-            update_status("File loading failed.")
-    else:
-        update_status("No file selected.")
+class UI:
+    def __init__(self, controller):
+        self.root = None
+        self.text_box = None
+        self.status_label = None
+        self.progress_bar = None
+        self.control = None
+        self.control = controller
 
-def parse_content():
-    content = text_box.get(1.0, tk.END).strip()
-    if not content:
-        messagebox.showwarning("Warning", "No content to parse.")
-        update_status("Parsing failed. No content.")
-        return
+    def open_results_window(self):
+        file_path = os.path.expanduser("./test_code.py")
 
-    update_status("Parsing started...")
-    progress_bar.start(10)  # Simulate progress
-    generate_tracing_statements.main()
 
-def finish_parsing():
-    progress_bar.stop()
-    update_status("Parsing completed successfully.")
-    messagebox.showinfo("Success", "Content parsed successfully!")
+        results_window = tk.Toplevel(self.root)
+        results_window.title("Parsing Results")
+        results_window.geometry("600x450")
+        if file_path:
+            try:
+                with open(file_path, 'r') as file:
+                    result_text = file.read()
+            except Exception as e:
+               print("Error", f"Failed to load file: {str(e)}")
 
-def update_status(message):
-    status_label.config(text=message)
+        result_text_widget = tk.Text(results_window, wrap=tk.WORD, height=20, width=80)
+        result_text_widget.insert(tk.END, result_text)
+        result_text_widget.pack(padx=10, pady=10)
 
-def save_file():
-    print(f"Root exists: {root.winfo_exists()}")
+        close_button = ttk.Button(results_window, text="Close", command=results_window.destroy)
+        close_button.pack(pady=10)
 
-    file_path = filedialog.asksaveasfilename(defaultextension=".txt",
-                                             filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
-    print(f"Selected path: {file_path}")
+    def main(self):
+        self.root = tk.Tk()
+        self.root.title("Enhanced Code Input")
+        self.root.geometry("700x500")  # Larger size for better layout
 
-    if file_path:
-        try:
-            with open(file_path, 'w') as file:
-                file.write(text_box.get(1.0, tk.END).strip())
-            update_status("File saved successfully.")
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to save file: {str(e)}")
-            update_status("File saving failed.")
+        # Styling
+        style = ttk.Style()
+        style.configure("TButton", font=("Arial", 12), padding=6)
+        style.configure("TLabel", font=("Arial", 12), padding=4)
+        style.configure("TFrame", background="#f0f0f0")
 
-def main():
-    global root, text_box, status_label, progress_bar
+        # Top frame
+        top_frame = ttk.Frame(self.root, padding="10 10 10 10")
+        top_frame.pack(fill=tk.X)
+        ttk.Label(top_frame, text="Enhanced Code Input GUI", font=("Arial", 16, "bold")).pack(pady=5)
 
-    root = tk.Tk()
-    root.title("Enhanced Code Input")
-    root.geometry("700x500")  # Larger size for better layout
+        # Middle frame
+        middle_frame = ttk.Frame(self.root, padding="10 10 10 10")
+        middle_frame.pack(fill=tk.BOTH, expand=True)
 
-    # Styling
-    style = ttk.Style()
-    style.configure("TButton", font=("Arial", 12), padding=6)
-    style.configure("TLabel", font=("Arial", 12), padding=4)
-    style.configure("TFrame", background="#f0f0f0")
+        self.text_box = tk.Text(middle_frame, wrap=tk.WORD, height=15, width=60, font=("Courier New", 12), bg="#f9f9f9")
+        self.text_box.pack(pady=10, padx=10)
 
-    # Top frame
-    top_frame = ttk.Frame(root, padding="10 10 10 10")
-    top_frame.pack(fill=tk.X)
-    ttk.Label(top_frame, text="Enhanced Code Input GUI", font=("Arial", 16, "bold")).pack(pady=5)
+        # Bottom frame (buttons)
+        bottom_frame = ttk.Frame(self.root, padding="10 10 10 10")
+        bottom_frame.pack(fill=tk.X)
 
-    # Middle frame
-    middle_frame = ttk.Frame(root, padding="10 10 10 10")
-    middle_frame.pack(fill=tk.BOTH, expand=True)
+        upload_button = ttk.Button(bottom_frame, text="Upload", command=self.control.upload_file)
+        upload_button.pack(side=tk.LEFT, padx=10)
 
-    text_box = tk.Text(middle_frame, wrap=tk.WORD, height=15, width=60, font=("Courier New", 12), bg="#f9f9f9")
-    text_box.pack(pady=10, padx=10)
+        parse_button = ttk.Button(bottom_frame, text="Parse", command=self.control.parse_content)
+        parse_button.pack(side=tk.LEFT, padx=10)
 
-    # Bottom frame (buttons)
-    bottom_frame = ttk.Frame(root, padding="10 10 10 10")
-    bottom_frame.pack(fill=tk.X)
+        save_button = ttk.Button(bottom_frame, text="Save", command=self.control.save_file)
+        save_button.pack(side=tk.LEFT, padx=10)
 
-    upload_button = ttk.Button(bottom_frame, text="Upload", command=upload_file)
-    upload_button.pack(side=tk.LEFT, padx=10)
+        exit_button = ttk.Button(bottom_frame, text="Exit", command=self.root.destroy)
+        exit_button.pack(side=tk.LEFT, padx=10)
 
-    parse_button = ttk.Button(bottom_frame, text="Parse", command=parse_content)
-    parse_button.pack(side=tk.LEFT, padx=10)
+        # Progress bar
+        self.progress_bar = ttk.Progressbar(self.root, mode="indeterminate")
+        self.progress_bar.pack(fill=tk.X, padx=20, pady=10)
 
-    save_button = ttk.Button(bottom_frame, text="Save", command=save_file)
-    save_button.pack(side=tk.LEFT, padx=10)
+        # Status bar
+        self.status_label = ttk.Label(self.root, text="Ready", anchor=tk.W, background="#e0e0e0", relief=tk.SUNKEN)
+        self.status_label.pack(fill=tk.X, pady=5)
 
-    exit_button = ttk.Button(bottom_frame, text="Exit", command=root.destroy)
-    exit_button.pack(side=tk.LEFT, padx=10)
-
-    # Progress bar
-    progress_bar = ttk.Progressbar(root, mode="indeterminate")
-    progress_bar.pack(fill=tk.X, padx=20, pady=10)
-
-    # Status bar
-    status_label = ttk.Label(root, text="Ready", anchor=tk.W, background="#e0e0e0", relief=tk.SUNKEN)
-    status_label.pack(fill=tk.X, pady=5)
-
-    root.mainloop()
-
-if __name__ == "__main__":
-    main()
+        self.root.mainloop()
 
 
 
