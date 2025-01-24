@@ -31,13 +31,11 @@ class Controller:
             return
 
         self.update_status("Parsing started...")
-        self.ui.progress_bar.start(10)  # Simulate progress
         self.save("./test_code.py")
         generate_tracing_statements.main()
         self.ui.open_results_window()
 
     def finish_parsing(self):
-        self.ui.progress_bar.stop()
         self.update_status("Parsing completed successfully.")
         messagebox.showinfo("Success", "Content parsed successfully!")
 
