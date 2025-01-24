@@ -7,7 +7,7 @@ rules:
     message: "Semgrep found a method definition: $FUNC"
     languages:
       - python
-    severity: WARNING
+    severity: INFO
 
   # Rule to detect for loops
   - id: for_loop_detection
@@ -39,15 +39,6 @@ rules:
       - python
     severity: INFO
 
-  # Rule to detect variable declarations 
-  - id: variable_declaration_detection
-    pattern: |
-      $VAR = $VALUE
-    message: "Semgrep found a variable declaration: $VAR"
-    languages:
-      - python
-    severity: INFO
-
   # Rule to detect class definitions 
   - id: class_definition_detection
     pattern: |
@@ -56,4 +47,4 @@ rules:
     message: "Semgrep found a class definition: $CLASS"
     languages:
       - python
-    severity: WARNING
+    severity: INFO
