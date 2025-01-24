@@ -1,20 +1,50 @@
-# Add a to the current number.
-def add(a):
-    # def _get_a_bit_number ( a ) : if a < 5 : return a + 2 elif a > 5 : return a + 4 else : return a + 2
-    if a > 5:
-        return a + 2
-    else:
-        return a + 4
+class Calculator:
+    def __init__(self, factor=1):
+        self.factor = factor
 
-# Multiplies the given number a by the given list.
-def multiply(a, lst):
-    # def _iterate_in_list ( lst, a ) : for i in lst : if i > a : i += a return i
-    while a > 0:
-        # def _add_to_list ( lst, a ) : for i in lst : if i == 0 : i += a else : i += a
-        for i in lst:
-            i + a
-    return lst
+    def add(self, a, b):
+        if a < 0 and b < 0:
+            return (a + b) * self.factor
+        elif a > b:
+            return (a + b + self.factor)
+        else:
+            return a + b
 
-# Divide two numbers
-def divide(a, b):
-    return a / b
+    def scale_list(self, lst):
+        scaled_list = []
+        for item in lst:
+            if item > 0:
+                scaled_list.append(item * self.factor)
+            else:
+                scaled_list.append(0)
+        return scaled_list
+
+def sum_even_numbers(lst):
+    total = 0
+    for num in lst:
+        if num % 2 == 0:
+            total += num
+    return total
+
+def factorial(n):
+    result = 1
+    counter = n
+    while counter > 0:
+        result *= counter
+        counter -= 1
+    return result
+
+class NumberManager:
+    def __init__(self, numbers):
+        self.numbers = numbers  
+
+    def filter_greater_than(self, threshold):
+        return [num for num in self.numbers if num > threshold]
+
+    def find_maximum(self):
+        max_val = self.numbers[0]
+        for num in self.numbers:
+            if num > max_val:
+                max_val = num
+        return max_val
+
