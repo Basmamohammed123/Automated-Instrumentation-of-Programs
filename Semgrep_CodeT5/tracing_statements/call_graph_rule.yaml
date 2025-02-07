@@ -1,0 +1,13 @@
+rules:
+  - id: function-call-detection
+    languages: [python]
+    patterns: 
+      - pattern: $FUNC(...)
+    message: "Detected function call to `$FUNC` with arguments `$ARGS`"
+    severity: INFO
+    metadata:
+      metavars:
+        FUNC:
+          abstract: true
+        ARGS:
+          abstract: true

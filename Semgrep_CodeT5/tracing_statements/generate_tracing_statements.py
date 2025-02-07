@@ -136,7 +136,6 @@ def get_blocks_from_file(file_path, line_number_blocks):
 
     return blocks_content
 
-# Function to add summary after the function header
 def add_comment_before_block(block_code, summary):
     """
     Inserts the summary as a `# summary` comment before the block.
@@ -153,9 +152,16 @@ def add_comment_before_block(block_code, summary):
         return ""
 
     # Determine the indentation of the first line in the block
-    indent = " " * (len(lines[0]) - len(lines[0].lstrip()))
-    comment = f"{indent}# {summary}\n"  # Align comment with block's indentation
-    return comment + "".join(lines)  # Prepend comment to the block
+    first_line = lines[0].lstrip()
+    if first_line:  # Check if the first line is not empty
+        indent = " " * (len(lines[0]) - len(first_line))
+    else:
+        indent = ""
+
+    # Create the comment with the detected indentation
+    comment = f"{indent}# {summary}\n"
+
+    return comment + "".join(lines)  # Prepend the comment to the block
 
 def apply_summaries_to_file(file_path, line_number_blocks, summaries):
     """
