@@ -48,3 +48,4 @@ rules:
     languages:
       - python
     severity: INFO
+
