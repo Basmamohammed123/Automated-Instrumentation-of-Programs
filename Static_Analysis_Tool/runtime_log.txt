@@ -1,3 +1,0 @@
-Block executed: lines 23-24
-Block executed: lines 8-13
-Block executed: lines 18-19

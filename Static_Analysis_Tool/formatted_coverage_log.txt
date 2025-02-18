@@ -1,0 +1,17 @@
+🛠️  Python Code Coverage Report
+==================================================
+test_code.py      36      5    86%   13, 40, 43, 56, 60
+
+
+🚨 **Lines NOT Executed by Function(s):**
+
+=== Function: analyze_numbers ===
+Line 13: break  # Stop if sum of odd numbers exceeds 10
+
+=== Function: is_prime ===
+Line 40: return False
+Line 43: return False
+
+=== Function: get_quadrant ===
+Line 56: return "On axis"
+Line 60: return "Quadrant II" if y > 0 else "Quadrant III"

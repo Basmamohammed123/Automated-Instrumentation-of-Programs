@@ -4,16 +4,25 @@ import sys
 import re
 
 def install_semgrep():
+    """
+    Install Semgrep using pip if it is not already installed.
+    """
     print("Semgrep is not installed. Installing Semgrep...")
     subprocess.check_call([sys.executable, "-m", "pip", "install", "semgrep"])
     print("Semgrep installed successfully.")
 
 def get_semgrep_path():
+    """
+    Get the path to the Semgrep executable.
+    """
     scripts_dir = os.path.join(os.path.dirname(sys.executable), "Scripts")
     semgrep_path = os.path.join(scripts_dir, "semgrep.exe")
     return semgrep_path if os.path.isfile(semgrep_path) else "semgrep"
 
 def run_semgrep(rule_file, target_file):
+    """
+    Run Semgrep with the specified rule file on the given Python file and return the raw output.
+    """
     semgrep_path = get_semgrep_path()
 
     try:
@@ -36,214 +45,128 @@ def run_semgrep(rule_file, target_file):
         [semgrep_path, "--config", rule_file, target_file],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     )
+
     return result.stdout
 
-def insert_runtime_tracing(file_path, line_number_blocks):
-    """
-    Insert print statements for runtime tracing at the start of each identified block,
-    ensuring correct indentation and avoiding indentation errors.
-    """
-    if not line_number_blocks:
-        print("No blocks to process.")
-        return
-
-    # Clear previous contents of runtime_log.txt before execution
-    open("runtime_log.txt", "w").close()
-
-    with open(file_path, "r") as f:
-        lines = f.readlines()
-
-    offset = 0
-    for block in line_number_blocks:
-        if block:
-            first_line_number, last_line_number = block
-            index = first_line_number - 1 + offset
-            if index < len(lines):
-                # Determine the indentation level of the current line
-                current_line = lines[index]
-                indentation = re.match(r"^(\s*)", current_line).group(1)
-
-                # Construct runtime tracing statements with correct indentation
-                trace_statement = (
-                    f'{indentation}print(f"Executing block: lines {first_line_number}-{last_line_number}")\n'
-                    f'{indentation}with open("runtime_log.txt", "a") as log_file:\n'
-                    f'{indentation}    log_file.write(f"Block executed: lines {first_line_number}-{last_line_number}\\n")\n'
-                )
-
-                # Insert the trace statements at the correct position
-                lines.insert(index, trace_statement)
-                offset += 3  # Three lines were added for each block
-
-    with open(file_path, "w") as f:
-        f.writelines(lines)
-
-    print(f"Inserted runtime tracing statements with logging in {file_path}.")
-
-
-
 def extract_first_last_line_numbers(semgrep_output):
+    """
+    Extracts the first and last line numbers from each block of findings in the Semgrep output.
+
+    Parameters:
+    semgrep_output (str): The raw output from Semgrep.
+
+    Returns:
+    list of tuples: Each tuple contains the first and last line numbers of a block.
+    """
     blocks = []
     first_line_number = None
     last_line_number = None
-    in_block = False
+    in_block = False  # Flag to track when we're inside a block
 
     for line in semgrep_output.splitlines():
+        # Detect the start of a block based on "Semgrep found"
         if "Semgrep found" in line:
-            first_line_number = None
+            # If we're already capturing a block, finalize it before starting a new one
+            first_line_number = None  # Reset for the new block
             last_line_number = None
-            in_block = True
-        elif "┆----------------------------------------" in line:
+            in_block = True  # Start capturing lines in the new block
+        elif "┆----------------------------------------" in line or "❯❱" in line or "❱" in line:
+            # Separator line signals the end of the current block
             if first_line_number is not None and last_line_number is not None:
                 blocks.append((first_line_number, last_line_number))
-            in_block = False
+            in_block = False  # Stop capturing until the next "Semgrep found" line
         elif in_block and re.match(r"^(\d+)┆", line.strip()):
+            # Capture line numbers that start with a digit followed by "┆"
             match = re.match(r"^(\d+)┆", line.strip())
             if match:
                 line_number = int(match.group(1))
                 if first_line_number is None:
+                    # This is the first line number in the block
                     first_line_number = line_number
+                # Continuously update the last line number until the end of the block
                 last_line_number = line_number
 
-    # Ensure that the function's last line is included properly
+    # Add the last block if there was no trailing separator
     if first_line_number is not None and last_line_number is not None:
         blocks.append((first_line_number, last_line_number))
 
     return blocks
 
-
-def generate_coverage_log_with_line_ranges(semgrep_output, target_file):
+def get_blocks_from_file(file_path, line_number_blocks):
     """
-    Generate a detailed code coverage log with line ranges based on Semgrep output.
+    Get the content of each block based on line number ranges and store each block as a string in a list.
+
+    Parameters:
+    file_path (str): Path to the file to read from.
+    line_number_blocks (list of tuples): Each tuple contains the first and last line numbers of a block.
+
+    Returns:
+    list: Each element in the list is a string representing the content of a block.
     """
-    summary = {}
-    detailed_report = []
-    current_pattern_type = None
-    current_pattern_desc = None
-    current_start_line = None
-    current_end_line = None
-
-    for line in semgrep_output.splitlines():
-        if "Semgrep found" in line and ":" in line:
-            if current_pattern_desc and current_start_line and current_end_line:
-                key = f"{current_pattern_type} ({current_pattern_desc})"
-                summary[key] = summary.get(key, 0) + 1
-                detailed_report.append(f"{key} at lines {current_start_line}-{current_end_line}")
-
-            current_pattern_type = line.split(":")[0].replace("Semgrep found", "").strip()
-            current_pattern_desc = line.split(":", 1)[1].strip()
-            current_start_line = current_end_line = None
-
-        elif re.match(r"^\s*(\d+)┆", line):
-            current_line_number = int(re.match(r"^\s*(\d+)┆", line).group(1))
-            if current_start_line is None:
-                current_start_line = current_line_number
-            current_end_line = current_line_number
-
-    if current_pattern_desc and current_start_line and current_end_line:
-        key = f"{current_pattern_type} ({current_pattern_desc})"
-        summary[key] = summary.get(key, 0) + 1
-        detailed_report.append(f"{key} at lines {current_start_line}-{current_end_line}")
-
-    with open("coverage_log.txt", "w") as log_file:
-        log_file.write("Code Coverage Report\n")
-        log_file.write("===================\n\n")
-        log_file.write(f"File: {target_file}\n\n")
-        log_file.write("Summary of Patterns Detected:\n")
-        log_file.write("----------------------------\n")
-        for pattern, count in summary.items():
-            log_file.write(f"{pattern}: {count} occurrences\n")
-
-        log_file.write("\nDetailed Report:\n")
-        log_file.write("----------------\n")
-        for entry in detailed_report:
-            log_file.write(f"{entry}\n")
-
-    print("Code coverage log with line ranges generated in coverage_log.txt")
-
-def compare_coverage_logs(static_log="coverage_log.txt", runtime_log="runtime_log.txt"):
-    """
-    Compare static coverage log with runtime coverage log and calculate executed percentage.
-    """
-    static_blocks = set()
-    runtime_blocks = set()
-
-    with open(static_log, "r") as f:
-        for line in f:
-            match = re.search(r"at lines (\d+)-(\d+)", line)
-            if match:
-                static_blocks.add((int(match.group(1)), int(match.group(2))))
-
-    with open(runtime_log, "r") as f:
-        for line in f:
-            match = re.search(r"Block executed: lines (\d+)-(\d+)", line)
-            if match:
-                runtime_blocks.add((int(match.group(1)), int(match.group(2))))
-
-    executed_blocks = static_blocks.intersection(runtime_blocks)
-    coverage_percentage = (len(executed_blocks) / len(static_blocks)) * 100 if static_blocks else 0
-
-    print("\nCoverage Report")
-    print("===================")
-    print(f"Total Static Blocks: {len(static_blocks)}")
-    print(f"Executed Blocks: {len(executed_blocks)}")
-    print(f"Coverage Percentage: {coverage_percentage:.2f}%")
-
-    
-def remove_runtime_tracing(file_path):
-    """
-    Remove all runtime tracing statements from the specified file.
-    """
+    # Read the file into a list of lines
     with open(file_path, "r") as f:
         lines = f.readlines()
 
-    cleaned_lines = []
-    skip_line = False
+    # List to store the content of each block
+    blocks_content = []
 
-    for line in lines:
-        if 'print(f"Executing block:' in line or 'with open("runtime_log.txt"' in line:
-            skip_line = True
-        elif skip_line and 'log_file.write' in line:
-            skip_line = False
-        else:
-            cleaned_lines.append(line)
+    # Iterate through each line number range and capture the corresponding block content
+    for first, last in line_number_blocks:
+        block_content = "".join(lines[first - 1:last])  # Extract and join lines in the range
+        blocks_content.append(block_content)  # Store the block as a single string in the list
 
+    return blocks_content
+
+def insert_statements(file_path, blocks, statement):
+    """
+    Insert a comment statement before the first line of each block in the specified file.
+
+    Parameters:
+    file_path (str): Path to the file to modify.
+    blocks (list of lists): Each inner list contains line numbers of a block.
+    statement (str): The comment statement to insert before each block.
+    """
+    if not blocks:
+        print("No blocks to process.")
+        return
+
+    # Read the original file
+    with open(file_path, "r") as f:
+        lines = f.readlines()
+
+    # Insert the comment statement before the first line of each block
+    offset = 0
+    for block in blocks:
+        if block:  # Ensure the block is not empty
+            first_line_number = int(block[0])
+            index = first_line_number - 1 + offset
+            lines.insert(index, str("# " + statement + "\n"))
+            offset += 1  # Adjust for the newly added line
+
+    # Write the modified file back
     with open(file_path, "w") as f:
-        f.writelines(cleaned_lines)
+        f.writelines(lines)
 
-    print(f"Removed runtime tracing statements from {file_path}.")
+    print(f"Inserted statements in {file_path}.")
 
 def main():
+    # Define paths
     rule_file = os.path.expanduser("./rule.yaml")
     target_file = os.path.expanduser("./test_code.py")
+    statement = "Block Found!"  # The statement to insert
 
-    # Step 1: Static Coverage Analysis
+    # Run Semgrep and get findings
     findings = run_semgrep(rule_file, target_file)
-    print("Static Coverage Findings:\n", findings)
-    generate_coverage_log_with_line_ranges(findings, target_file)
+    print("Semgrep Findings:\n", findings)
 
-    # Step 2: Insert Runtime Tracing
     line_number_blocks = extract_first_last_line_numbers(findings)
-    insert_runtime_tracing(target_file, line_number_blocks)
+    #for i, (first, last) in enumerate(line_number_blocks, 1):
+     #   print(f"Block {i}: First line number = {first}, Last line number = {last}")
+    #insert_statements(target_file, line_number_blocks, statement)
     
-    # Step 3: Run Instrumented Code to Generate Runtime Log
-    print("Running the instrumented code...")
-    try:
-        subprocess.run([sys.executable, target_file], check=True, stderr=subprocess.STDOUT)
-        print("Runtime log generated successfully.")
-    except subprocess.CalledProcessError as e:
-        print(f"Error while running the instrumented code: {e}")
-        return
-    
-    # Step 4: Compare Coverage Logs
-    compare_coverage_logs("coverage_log.txt", "runtime_log.txt")
-
-    # Step 5: Cleanup
-    remove_runtime_tracing(target_file)
-    print(f"Restored {target_file} to its original state.")
-    
-    # Verify line number blocks
-    for i, (first, last) in enumerate(line_number_blocks, 1):
-        print(f"Block {i}: First line = {first}, Last line = {last}")
+    blocks_content = get_blocks_from_file(target_file, line_number_blocks)
+    for i, content in enumerate(blocks_content, 1):
+        print(f"Block {i} Content:\n{content}\n")
 
 if __name__ == "__main__":
     main()
