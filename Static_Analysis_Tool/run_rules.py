@@ -47,6 +47,9 @@ def insert_runtime_tracing(file_path, line_number_blocks):
         print("No blocks to process.")
         return
 
+    # Clear previous contents of runtime_log.txt before execution
+    open("runtime_log.txt", "w").close()
+
     with open(file_path, "r") as f:
         lines = f.readlines()
 
@@ -78,7 +81,6 @@ def insert_runtime_tracing(file_path, line_number_blocks):
 
 
 
-
 def extract_first_last_line_numbers(semgrep_output):
     blocks = []
     first_line_number = None
@@ -90,7 +92,7 @@ def extract_first_last_line_numbers(semgrep_output):
             first_line_number = None
             last_line_number = None
             in_block = True
-        elif "┆----------------------------------------" in line or "❯❱" in line or "❱" in line:
+        elif "┆----------------------------------------" in line:
             if first_line_number is not None and last_line_number is not None:
                 blocks.append((first_line_number, last_line_number))
             in_block = False
@@ -102,6 +104,7 @@ def extract_first_last_line_numbers(semgrep_output):
                     first_line_number = line_number
                 last_line_number = line_number
 
+    # Ensure that the function's last line is included properly
     if first_line_number is not None and last_line_number is not None:
         blocks.append((first_line_number, last_line_number))
 
@@ -109,7 +112,9 @@ def extract_first_last_line_numbers(semgrep_output):
 
 
 def generate_coverage_log_with_line_ranges(semgrep_output, target_file):
-    """Generate a detailed code coverage log with line ranges based on Semgrep output."""
+    """
+    Generate a detailed code coverage log with line ranges based on Semgrep output.
+    """
     summary = {}
     detailed_report = []
     current_pattern_type = None
@@ -139,9 +144,6 @@ def generate_coverage_log_with_line_ranges(semgrep_output, target_file):
         summary[key] = summary.get(key, 0) + 1
         detailed_report.append(f"{key} at lines {current_start_line}-{current_end_line}")
 
-    # Filter out blocks from "if __name__ == '__main__'" to avoid misrepresentation
-    detailed_report = [entry for entry in detailed_report if "__name__" not in entry]
-
     with open("coverage_log.txt", "w") as log_file:
         log_file.write("Code Coverage Report\n")
         log_file.write("===================\n\n")
@@ -158,47 +160,35 @@ def generate_coverage_log_with_line_ranges(semgrep_output, target_file):
 
     print("Code coverage log with line ranges generated in coverage_log.txt")
 
-
 def compare_coverage_logs(static_log="coverage_log.txt", runtime_log="runtime_log.txt"):
-    """Compare static coverage log with runtime coverage log and calculate the percentage of executed blocks."""
+    """
+    Compare static coverage log with runtime coverage log and calculate executed percentage.
+    """
     static_blocks = set()
     runtime_blocks = set()
 
-    # Read static coverage log
     with open(static_log, "r") as f:
         for line in f:
             match = re.search(r"at lines (\d+)-(\d+)", line)
             if match:
                 static_blocks.add((int(match.group(1)), int(match.group(2))))
 
-    # Read runtime coverage log
     with open(runtime_log, "r") as f:
         for line in f:
             match = re.search(r"Block executed: lines (\d+)-(\d+)", line)
             if match:
                 runtime_blocks.add((int(match.group(1)), int(match.group(2))))
 
-    # Calculate coverage
     executed_blocks = static_blocks.intersection(runtime_blocks)
     coverage_percentage = (len(executed_blocks) / len(static_blocks)) * 100 if static_blocks else 0
 
-    print("Coverage Report")
+    print("\nCoverage Report")
     print("===================")
     print(f"Total Static Blocks: {len(static_blocks)}")
     print(f"Executed Blocks: {len(executed_blocks)}")
     print(f"Coverage Percentage: {coverage_percentage:.2f}%")
 
-    # Show unexecuted blocks
-    unexecuted_blocks = static_blocks - executed_blocks
-    if unexecuted_blocks:
-        print("\nUnexecuted Blocks:")
-        for block in unexecuted_blocks:
-            print(f"  Lines {block[0]}-{block[1]}")
-    else:
-        print("\nAll blocks were executed!")
-
-
-
+    
 def remove_runtime_tracing(file_path):
     """
     Remove all runtime tracing statements from the specified file.
@@ -221,9 +211,6 @@ def remove_runtime_tracing(file_path):
         f.writelines(cleaned_lines)
 
     print(f"Removed runtime tracing statements from {file_path}.")
-
-
-
 
 def main():
     rule_file = os.path.expanduser("./rule.yaml")
@@ -260,4 +247,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
