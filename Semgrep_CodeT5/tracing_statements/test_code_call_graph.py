@@ -1,9 +1,14 @@
-def foo():
-    bar()
-    baz(42, "hello")
+def f1():
+    f2()
+    f3(42, "hello")
 
-def bar():
+def f2():
+    f3(42, "hello")
+
+def f3(x, y):
+    f4()
+
+def f4():
     pass
 
-def baz(x, y):
-    bar()
+f1()
