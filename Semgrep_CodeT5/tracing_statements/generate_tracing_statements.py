@@ -4,34 +4,26 @@ import os
 import subprocess
 import sys
 
-# # Specify the checkpoint and device
 checkpoint = "Salesforce/codet5p-220m-bimodal"
-device = "cpu"  # Change to "cuda" if GPU is available
+device = "cpu"
 
-# Load the tokenizer and model
 tokenizer = AutoTokenizer.from_pretrained(checkpoint, trust_remote_code=True)
 model = AutoModel.from_pretrained(checkpoint, trust_remote_code=True).to(device)
 
 def install_semgrep():
-    """
-    Install Semgrep using pip if it is not already installed.
-    """
+    """Install Semgrep using pip if it is not already installed."""
     print("Semgrep is not installed. Installing Semgrep...")
     subprocess.check_call([sys.executable, "-m", "pip", "install", "semgrep"])
     print("Semgrep installed successfully.")
 
 def get_semgrep_path():
-    """
-    Get the path to the Semgrep executable.
-    """
+    """Get the path to the Semgrep executable."""
     scripts_dir = os.path.join(os.path.dirname(sys.executable), "Scripts")
     semgrep_path = os.path.join(scripts_dir, "semgrep.exe")
     return semgrep_path if os.path.isfile(semgrep_path) else "semgrep"
 
 def run_semgrep(rule_file, target_file):
-    """
-    Run Semgrep with the specified rule file on the given Python file and return the raw output.
-    """
+    """Run Semgrep with the specified rule file on the given Python file and return the raw output."""
     semgrep_path = get_semgrep_path()
 
     try:
@@ -42,11 +34,8 @@ def run_semgrep(rule_file, target_file):
     except subprocess.CalledProcessError:
         print("Warning: Semgrep version check failed. Attempting to run Semgrep anyway.")
 
-    if not os.path.isfile(rule_file):
-        print(f"Error: Rule file '{rule_file}' not found.")
-        return ""
-    if not os.path.isfile(target_file):
-        print(f"Error: Target file '{target_file}' not found.")
+    if not os.path.isfile(rule_file) or not os.path.isfile(target_file):
+        print(f"Error: Missing files: rule_file='{rule_file}', target_file='{target_file}'")
         return ""
 
     print(f"Running Semgrep on {target_file}")
@@ -58,22 +47,13 @@ def run_semgrep(rule_file, target_file):
     return result.stdout
 
 def extract_first_last_line_numbers(semgrep_output):
-    """
-    Extracts first and last line numbers from the Semgrep output, including support for nested blocks.
-
-    Parameters:
-    semgrep_output (str): The raw output from Semgrep.
-
-    Returns:
-    list of tuples: Each tuple contains the first and last line numbers of a block.
-    """
+    """Extracts first and last line numbers from the Semgrep output, including support for nested blocks."""
     blocks = []
-    current_stack = []  # Stack to manage nested blocks
+    current_stack = []
     in_block = False
 
     for line in semgrep_output.splitlines():
         if "Semgrep found" in line:
-            # Close the current block if we're starting a new one
             if current_stack:
                 first_line_number, last_line_number = current_stack.pop()
                 if first_line_number and last_line_number:
@@ -82,7 +62,6 @@ def extract_first_last_line_numbers(semgrep_output):
             in_block = True
 
         elif "┆----------------------------------------" in line:
-            # Finalize the current block
             if current_stack:
                 first_line_number, last_line_number = current_stack.pop()
                 if first_line_number and last_line_number:
@@ -90,20 +69,16 @@ def extract_first_last_line_numbers(semgrep_output):
             in_block = False
 
         elif in_block and re.match(r"^(\d+)┆", line.strip()):
-            # Match line numbers and manage nested contexts
             match = re.match(r"^(\d+)┆", line.strip())
             if match:
                 line_number = int(match.group(1))
 
                 if not current_stack:
-                    # Start a new block
                     current_stack.append((line_number, line_number))
                 else:
-                    # Update the last line number of the current block
                     first_line_number, last_line_number = current_stack[-1]
                     current_stack[-1] = (first_line_number, line_number)
 
-    # Ensure any remaining block in the stack is added
     if current_stack:
         first_line_number, last_line_number = current_stack.pop()
         if first_line_number and last_line_number:
@@ -112,112 +87,76 @@ def extract_first_last_line_numbers(semgrep_output):
     return blocks
 
 def get_blocks_from_file(file_path, line_number_blocks):
-    """
-    Get the content of each block based on line number ranges and store each block as a string in a list.
-
-    Parameters:
-    file_path (str): Path to the file to read from.
-    line_number_blocks (list of tuples): Each tuple contains the first and last line numbers of a block.
-
-    Returns:
-    list: Each element in the list is a string representing the content of a block.
-    """
-    # Read the file into a list of lines
+    """Get the content of each block based on line number ranges and store each block as a string in a list."""
     with open(file_path, "r") as f:
         lines = f.readlines()
 
-    # List to store the content of each block
-    blocks_content = []
+    return ["".join(lines[first - 1:last]) for first, last in line_number_blocks]
 
-    # Iterate through each line number range and capture the corresponding block content
-    for first, last in line_number_blocks:
-        block_content = "".join(lines[first - 1:last])  # Extract and join lines in the range
-        blocks_content.append(block_content)  # Store the block as a single string in the list
+def generate_summary(block_code):
+    """Generates a basic LLM-generated summary of the given function."""
+    input_ids = tokenizer(block_code, return_tensors="pt").input_ids.to(device)
+    generated_ids = model.generate(input_ids, max_length=300)
+    summary = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
 
-    return blocks_content
+    return summary
 
-def add_comment_before_block(block_code, summary):
-    """
-    Inserts the summary as a `# summary` comment before the block.
+def apply_summaries_and_tracing_to_file(file_path, line_number_blocks, summaries):
+    """Inserts LLM-generated summaries as docstrings inside functions and adds enhanced TRACE logs at the beginning of each function."""
+    
+    log_file = "trace_log.txt"  # Define the log file
 
-    Parameters:
-    - block_code (str): The code block as a string.
-    - summary (str): The summary to insert as a comment.
-
-    Returns:
-    - str: The updated block with the `# summary` comment inserted before it.
-    """
-    lines = block_code.splitlines(keepends=True)  # Preserve original line endings
-    if not lines:  # Handle empty blocks gracefully
-        return ""
-
-    # Determine the indentation of the first line in the block
-    first_line = lines[0].lstrip()
-    if first_line:  # Check if the first line is not empty
-        indent = " " * (len(lines[0]) - len(first_line))
-    else:
-        indent = ""
-
-    # Create the comment with the detected indentation
-    comment = f"{indent}# {summary}\n"
-
-    return comment + "".join(lines)  # Prepend the comment to the block
-
-def apply_summaries_to_file(file_path, line_number_blocks, summaries):
-    """
-    Inserts LLM-generated summaries as comments before the detected blocks in the file.
-
-    Parameters:
-    file_path (str): Path to the file to modify.
-    line_number_blocks (list of tuples): Line ranges of detected blocks.
-    summaries (list): Generated summaries to insert as tracing comments.
-    """
     with open(file_path, "r") as f:
         lines = f.readlines()
 
-    # Create a mapping of line numbers to summaries to insert as comments
-    insertions = {first: f"# {summary}\n" for (first, _), summary in zip(line_number_blocks, summaries)}
+    insertions = {first: f'    """\n    {summary.strip()}\n    """\n' for (first, _), summary in zip(line_number_blocks, summaries)}
 
-    # Build the modified file content
     updated_lines = []
     for i, line in enumerate(lines, start=1):
-        if i in insertions:  # Check if there's a comment for this line
-            updated_lines.append(insertions[i])  # Add the tracing comment
-        updated_lines.append(line)  # Add the original line
+        stripped_line = line.strip()
 
-    # Write the updated content back to the file in one operation
+        if i in insertions:
+            updated_lines.append(insertions[i])  # Insert docstring with correct indentation
+
+        updated_lines.append(line)
+
+        # Inject enhanced entry trace logs **inside** the function with correct indentation
+        if stripped_line.startswith("def "):
+            function_name_match = re.match(r"def (\w+)\((.*?)\)", stripped_line)
+            if function_name_match:
+                function_name = function_name_match.group(1)
+                params = function_name_match.group(2).strip()
+
+                # Format function parameters for logging
+                param_values = f"{params}" if params else "No parameters"
+                trace_message = f"TRACE: Entering {function_name} with parameters: {param_values}"
+
+                indent = " " * (len(line) - len(line.lstrip()) + 4)  # Ensuring proper function indentation
+                trace_code = f'{indent}print(f"{trace_message}")\n'
+
+                updated_lines.append(trace_code)
+
+                # Append the log entry to the trace log file
+                with open(log_file, "a") as log:
+                    log.write(trace_message + "\n")
+
     with open(file_path, "w") as f:
         f.writelines(updated_lines)
 
 def main():
-    print("Testing!")
-    # Define paths
+    print("Testing automated instrumentation...")
     rule_file = os.path.expanduser("./rule.yaml")
     target_file = os.path.expanduser("./test_code.py")
 
-    # Run Semgrep and get findings
     findings = run_semgrep(rule_file, target_file)
     print("Semgrep Findings:\n", findings)
 
     line_number_blocks = extract_first_last_line_numbers(findings)
     blocks_content = get_blocks_from_file(target_file, line_number_blocks)
-    for i, content in enumerate(blocks_content, 1):
-        print(f"Block {i} Content:\n{content}\n")
 
-    
-    summaries = []
-    for func in blocks_content:
-        # Tokenize the function code
-        input_ids = tokenizer(func, return_tensors="pt").input_ids.to(device)
-    
-        # Generate summary
-        generated_ids = model.generate(input_ids, max_length=200)
-        summary = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
-    
-        summaries.append(summary)
+    summaries = [generate_summary(block) for block in blocks_content]
 
-    apply_summaries_to_file(target_file, line_number_blocks, summaries)
-    
+    apply_summaries_and_tracing_to_file(target_file, line_number_blocks, summaries)
 
 if __name__ == "__main__":
     main()
