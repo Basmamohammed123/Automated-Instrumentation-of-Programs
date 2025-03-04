@@ -1,62 +1,89 @@
 import sys
-import os
+import traceback
+import types
 
-def trace_calls(frame, event, arg):
-    """Hook function for function calls."""
-    if event == "call":
-        return trace_lines  # Enable line-by-line tracing
-    return None
+class VariableTracer:
+    def __init__(self):
+        self.initial_state = {}
+        self.final_state = {}
+        self.ignored_vars = {"self", "script_file", "filename", "tracer", "f", "code", "compiled_code"}
 
-def trace_lines(frame, event, arg):
-    """Hook function for line execution to track variable assignments."""
-    if event == "line":
-        local_vars = frame.f_locals
-        filename = frame.f_code.co_filename
-        lineno = frame.f_lineno
+    def trace_calls(self, frame, event, arg):
+        if event == "call":
+            return self.trace_lines
+        return None
 
-        # Initialize variable states if not already done
-        if filename not in variable_states:
-            variable_states[filename] = {}
+    def trace_lines(self, frame, event, arg):
+        if event != "line":
+            return
 
-        for var_name, value in local_vars.items():
-            if var_name not in variable_states[filename]:
-                # Capture initial state
-                variable_states[filename][var_name] = {'initial': value, 'final': value}
-            else:
-                # Update final state
-                variable_states[filename][var_name]['final'] = value
+        # Track only variables from the user script (not from the tracer itself)
+        if "variable_tracer.py" in frame.f_code.co_filename:
+            return
 
-    return trace_lines
+        local_vars = frame.f_globals.copy()  # Track global variables
+        local_vars.update(frame.f_locals)  # Include local variables
 
-def run_script(script_path):
-    """Executes a Python script with tracing enabled."""
-    if not os.path.exists(script_path):
-        print(f"Error: File '{script_path}' not found.")
-        return
+        for var, value in local_vars.items():
+            # Ignore built-in variables, function definitions, modules, and ignored vars
+            if (var.startswith("__") or 
+                isinstance(value, (types.BuiltinFunctionType, types.ModuleType, type, types.FunctionType)) or
+                var in self.ignored_vars):
+                continue  # Skip function definitions, modules, and ignored variables
 
-    global variable_states
-    variable_states = {}
+            if var not in self.initial_state:
+                self.initial_state[var] = repr(value)
+            self.final_state[var] = repr(value)
 
-    # Read the script
-    with open(script_path, "r") as file:
-        script_code = file.read()
+        return self.trace_lines
 
-    # Set tracing function
-    sys.settrace(trace_calls)
+    def start_tracing(self):
+        sys.settrace(self.trace_calls)
+
+    def stop_tracing(self):
+        sys.settrace(None)
+
+    def print_trace_results(self):
+        print("\n📌  \033[1mVariable States\033[0m  📌")
+        print("=" * 50)
+
+        if not self.initial_state:
+            print("No variables were traced. Ensure your script has variable assignments.")
+
+        for var in self.initial_state:
+            initial = self.initial_state[var]
+            final = self.final_state.get(var, initial)
+
+            status_emoji = "🟢"
+            print(f"{status_emoji} Variable `{var}`: Initial = {initial}, Final = {final}")
+
+        print("=" * 50)
+
+def execute_script(filename):
+    tracer = VariableTracer()
     try:
-        exec(script_code, {"__name__": "__main__"})  # Execute script safely
-    finally:
-        sys.settrace(None)  # Stop tracing after execution
+        with open(filename, "r") as f:
+            code = f.read()
 
-    # Display initial and final states
-    print("\nVariable States:")
-    for filename, vars in variable_states.items():
-        print(f"\nFile: {filename}")
-        for var_name, states in vars.items():
-            print(f"Variable '{var_name}': Initial = {states['initial']}, Final = {states['final']}")
+        compiled_code = compile(code, filename, "exec")
+
+        tracer.start_tracing()  # Start tracing before execution
+        exec(compiled_code, globals())  # FIX: Run in the global scope to track variables
+        tracer.stop_tracing()
+
+    except FileNotFoundError:
+        print(f"\n❌ Error: The file '{filename}' was not found.")
+    except Exception as e:
+        print("\n❌ Error encountered while executing script:")
+        print(traceback.format_exc())
+
+    finally:
+        tracer.print_trace_results()
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python variable_tracer.py <script.py>")
-    else:
-        run_script(sys.argv[1])
+    if len(sys.argv) != 2:
+        print("Usage: python variable_tracer.py <script_file.py>")
+        sys.exit(1)
+
+    script_file = sys.argv[1]
+    execute_script(script_file)
