@@ -8,12 +8,16 @@ function activate(context) {
     let disposable = vscode.commands.registerCommand('capstone-extension.runPython', function () { 
         console.log("Command Executed!");
 
-        const terminal = vscode.window.createTerminal("Capstone Extension");
+        const terminal = vscode.window.createTerminal({
+            name: "Capstone Extension",
+            shellPath: "wsl.exe",  // Use WSL as the terminal shell
+            shellArgs: []           // No additional arguments needed
+        });
         terminal.show(); // Show the terminal
 
         const extensionPath = __dirname; 
         const basePath = path.resolve(extensionPath, "..");
-        const scriptPath = path.join(basePath, "Semgrep_CodeT5/tracing_statements/delete_soon.py");
+        const scriptPath = path.join(basePath, "Semgrep_CodeT5/tracing_statements/file_loader.py");
 
         // Convert Windows path to WSL path
         const wslBasePath = basePath.replace(/\\/g, '/').replace(/^([A-Za-z]):/, '/mnt/$1');
@@ -25,12 +29,10 @@ function activate(context) {
 
         // Run the script in WSL using the VS Code integrated terminal
         terminal.sendText(`
-            wsl bash -c "
             cd '${wslBasePath}' && \
             source .venv/bin/activate && \
             cd Semgrep_CodeT5/tracing_statements && \
-            python3 delete_soon.py
-            "
+            python3 control_options.py
         `);
     });
 
