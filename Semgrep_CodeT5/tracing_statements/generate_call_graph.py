@@ -123,14 +123,20 @@ def run_program(target_script):
         code = compile(f.read(), target_script, 'exec')
         exec(code, {})
 
-# Target Python file to analyze
-TARGET_FILE = "test_code_call_graph.py"
+def main():
+    # Target Python file to analyze
+    TARGET_FILE = "test_code.py"
 
-# Run program and generate trace-based call graph
-run_program(TARGET_FILE)
+    # Run program and generate trace-based call graph
+    run_program(TARGET_FILE)
 
-# Display the call graph in text format
-display_call_graph(call_graph)
+    # Display the call graph in text format
+    display_call_graph(call_graph)
 
-# Visualize the call graph
-visualize_call_graph(call_graph)
+    # Visualize the call graph
+    visualize_call_graph(call_graph)
+
+    print("Call graph generation complete!")
+
+if __name__ == "__main__":
+    main()
