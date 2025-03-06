@@ -14,14 +14,13 @@ matplotlib.use("TkAgg")
 call_graph = defaultdict(list)
 call_stack = []
 MAX_DEPTH = 50  # Limit recursion depth to prevent infinite loops
-USER_SCRIPT = "test_code_call_graph.py"  # Only trace calls from this script
 
 def trace_calls(frame, event, arg):
     """Tracks function calls and constructs the call graph dynamically."""
     filename = frame.f_code.co_filename
 
     # Only trace functions inside the user script; ignore system functions.
-    if USER_SCRIPT not in filename:
+    if TARGET_FILE not in filename:
         return
 
     if event == "call":
