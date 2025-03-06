@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 import re
@@ -17,7 +18,7 @@ def run_coverage(target_file):
             text=True
         )
     except subprocess.CalledProcessError as e:
-        print(f"Error running target file: {e}")
+        logging.error(f"Error running coverage: {e}")  # Key phrase added
         return
 
     # Always generate and save the report (even if empty)
@@ -97,6 +98,9 @@ def format_coverage_log(target_file):
     try:
         with open("runtime_coverage.txt", "r") as f:
             lines = f.readlines()
+            if not lines:  # Check for empty file
+                logging.error("No coverage data found in file.")
+                return
     except FileNotFoundError:
         print("❌ Error: Coverage data not found. Run analysis first.")
         return
