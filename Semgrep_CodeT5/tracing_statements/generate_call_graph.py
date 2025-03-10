@@ -96,7 +96,7 @@ def run_program(target_script):
 
 def main():
     # Target Python file to analyze.
-    target_file = "test_code_call_graph.py"
+    target_file = "test_code.py"
 
     # Run the program to generate the trace-based call graph.
     run_program(target_file)

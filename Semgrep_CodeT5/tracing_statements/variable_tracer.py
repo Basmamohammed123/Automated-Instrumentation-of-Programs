@@ -80,10 +80,17 @@ def execute_script(filename):
     finally:
         tracer.print_trace_results()
 
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python variable_tracer.py <script_file.py>")
-        sys.exit(1)
+# if __name__ == "__main__":
+#     if len(sys.argv) != 2:
+#         print("Usage: python variable_tracer.py <script_file.py>")
+#         sys.exit(1)
+#
+#     script_file = sys.argv[1]
+#     execute_script(script_file)
 
-    script_file = sys.argv[1]
+def main(script_file="test_code.py"):
     execute_script(script_file)
+
+if __name__ == "__main__":
+    script_file = sys.argv[1] if len(sys.argv) == 2 else "test_code.py"
+    main(script_file)

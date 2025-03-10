@@ -30,6 +30,10 @@ def handle_choice_action(choice):
         import runtime_coverage
         runtime_coverage.main()
 
+    elif choice == "4. Track Variables":
+        import variable_tracer
+        variable_tracer.main()
+
 print("First check") # REMOVE
 root = tk.Tk()
 root.title("Automated Instrumentation Options: ")
@@ -48,7 +52,7 @@ text_area.pack(padx=10, pady=5, fill=tk.BOTH, expand=True)
 button_frame = tk.Frame(root)
 button_frame.pack(pady=10)
 
-choices = ["1. Generate Tracing Statements", "2. Create Call Graph", "3. Runtime Coverage"]
+choices = ["1. Generate Tracing Statements", "2. Create Call Graph", "3. Runtime Coverage", "4. Track Variables"]
 for choice in choices:
     btn = tk.Button(button_frame, text=choice, command=lambda c=choice: handle_choice_action(c))
     btn.pack(side=tk.LEFT, padx=10)
