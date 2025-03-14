@@ -34,6 +34,8 @@ def handle_choice_action(choice):
         import variable_tracer
         variable_tracer.main()
 
+    file_loader.save_file()
+
 print("First check") # REMOVE
 root = tk.Tk()
 root.title("Automated Instrumentation Options: ")
