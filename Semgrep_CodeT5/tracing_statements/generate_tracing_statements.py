@@ -109,7 +109,10 @@ def apply_summaries_and_tracing_to_file(file_path, line_number_blocks, summaries
     with open(file_path, "r") as f:
         lines = f.readlines()
 
-    insertions = {first: f'    """\n    {summary.strip()}\n    """\n' for (first, _), summary in zip(line_number_blocks, summaries)}
+    insertions = {}
+    for (first, _), summary in zip(line_number_blocks, summaries):
+        indent = " " * (len(lines[first - 1]) - len(lines[first - 1].lstrip()))  # Match function indentation
+        insertions[first] = f'{indent}"""\n{indent}{summary.strip()}\n{indent}"""\n'
 
     updated_lines = []
     for i, line in enumerate(lines, start=1):
@@ -121,32 +124,33 @@ def apply_summaries_and_tracing_to_file(file_path, line_number_blocks, summaries
         updated_lines.append(line)
 
         # Inject enhanced entry trace logs **inside** the function with correct indentation
-        if stripped_line.startswith("def "):
-            function_name_match = re.match(r"def (\w+)\((.*?)\)", stripped_line)
+        if line.strip().startswith("def "):
+            function_name_match = re.match(r"def (\w+)\((.*?)\)", line.strip())
             if function_name_match:
                 function_name = function_name_match.group(1)
                 params = function_name_match.group(2).strip()
+                
+                indent = " " * (len(line) - len(line.lstrip()) + 4)
 
-                # Format function parameters for logging
-                param_values = f"{params}" if params else "No parameters"
-                trace_message = f"TRACE: Entering {function_name} with parameters: {param_values}"
-
-                indent = " " * (len(line) - len(line.lstrip()) + 4)  # Ensuring proper function indentation
-                trace_code = f'{indent}print(f"{trace_message}")\n'
-
+                if params:
+                    param_list = [p.split('=')[0].strip() for p in params.split(', ') if p.split('=')[0].strip() != 'self']
+                    if param_list:
+                        param_values = ', '.join([f'{p}={{ {p} }}' for p in param_list])
+                        trace_code = f'{indent}print(f"TRACE: Entering {function_name} function with parameters: {param_values}")\n'
+                    else:
+                        trace_code = f'{indent}print(f"TRACE: Entering {function_name} function with no parameters")\n'
+                else:
+                    trace_code = f'{indent}print(f"TRACE: Entering {function_name} function with no parameters")\n'
+                
                 updated_lines.append(trace_code)
-
-                # Append the log entry to the trace log file
-                with open(log_file, "a") as log:
-                    log.write(trace_message + "\n")
 
     with open(file_path, "w") as f:
         f.writelines(updated_lines)
 
 def main():
     print("Testing automated instrumentation...")
-    rule_file = os.path.expanduser("./rule.yaml")
-    target_file = os.path.expanduser("./test_code.py")
+    rule_file = "rule.yaml"
+    target_file = "test_code.py"
 
     findings = run_semgrep(rule_file, target_file)
     print("Semgrep Findings:\n", findings)
