@@ -2,24 +2,29 @@
   "name": "capstone-extension",
   "displayName": "Automated-instrumentation-1.0",
   "description": "VS Code extension for the Automated Instrumentation project",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "engines": {
     "vscode": "^1.97.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onCommand:capstone-extension.runSetup",
+    "onCommand:capstone-extension.runAutomatedInstrumentation"
+  ],
   "main": "./extension.js",
   "contributes": {
-    "commands": [{
-      "command": "capstone-extension.helloWorld",
-      "title": "Hello World"
-    },
-    {
-      "command": "capstone-extension.runPython",
-      "title": "Run My Python Script"
-  }]
+    "commands": [
+      {
+        "command": "capstone-extension.runAutomatedInstrumentation",
+        "title": "Run code analysis"
+      },
+      {
+        "command": "capstone-extension.runSetup",
+        "title": "Setup code analysis"
+      }
+    ]
   },
   "scripts": {
     "lint": "eslint .",
