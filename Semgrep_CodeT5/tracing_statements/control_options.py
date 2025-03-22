@@ -54,8 +54,8 @@ def handle_choice_action(choice):
 
 root = tk.Tk()
 root.title("Automated Instrumentation Options: ")
-root.geometry("600x400")
-root.config(bg="#f4f4f9")
+root.geometry("1000x700")
+root.config(bg="#8996a1")
 
 root.protocol("WM_DELETE_WINDOW", on_closing)
 
@@ -74,7 +74,7 @@ button_frame.pack(pady=15, fill=tk.X)
 
 button_style = {
     'font': ("Arial", 10),
-    'bg': "#2196F3",  # Green background
+    'bg': "#2196F3",
     'fg': "white",
     'bd': 1,
     'relief': "raised",
@@ -85,7 +85,7 @@ button_style = {
 choices = ["1. Generate Tracing Statements", "2. Create Call Graph", "3. Runtime Coverage", "4. Track Variables"]
 for choice in choices:
     btn = tk.Button(button_frame, text=choice, command=lambda c=choice: handle_choice_action(c), **button_style)
-    btn.pack(side=tk.LEFT, padx=10)
+    btn.pack(side=tk.LEFT, padx=10, pady=5, fill=tk.X, expand=True)
 
 
 
