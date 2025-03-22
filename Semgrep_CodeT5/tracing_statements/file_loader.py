@@ -6,7 +6,6 @@ from tkinter import messagebox
 
 
 def get_file_path():
-    print("Second check")    # REMOVE
     root = tk.Tk()
     root.withdraw()
 
@@ -43,7 +42,12 @@ def save_file():
     if not response:
         return
 
-    file_path = filedialog.askopenfilename(title="Select a file")
+    file_path = filedialog.asksaveasfilename(
+        title="Save File As",
+        defaultextension=".txt",  # Set the default extension to .txt
+        filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")]
+    )
+
     if file_path:
 
         script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -64,3 +68,6 @@ def save_file():
     else:
         print("No file selected.")
         return None
+
+if __name__ == "__main__":
+    save_file()
