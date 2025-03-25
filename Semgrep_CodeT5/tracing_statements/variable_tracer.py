@@ -7,6 +7,7 @@ class VariableTracer:
         self.initial_state = {}
         self.final_state = {}
         self.ignored_vars = {"self", "script_file", "filename", "tracer", "f", "code", "compiled_code"}
+        self.output_lines = []
 
     def trace_calls(self, frame, event, arg):
         if event == "call":
@@ -17,19 +18,17 @@ class VariableTracer:
         if event != "line":
             return
 
-        # Track only variables from the user script (not from the tracer itself)
         if "variable_tracer.py" in frame.f_code.co_filename:
             return
 
-        local_vars = frame.f_globals.copy()  # Track global variables
-        local_vars.update(frame.f_locals)  # Include local variables
+        local_vars = frame.f_globals.copy()
+        local_vars.update(frame.f_locals)
 
         for var, value in local_vars.items():
-            # Ignore built-in variables, function definitions, modules, and ignored vars
             if (var.startswith("__") or 
                 isinstance(value, (types.BuiltinFunctionType, types.ModuleType, type, types.FunctionType)) or
                 var in self.ignored_vars):
-                continue  # Skip function definitions, modules, and ignored variables
+                continue
 
             if var not in self.initial_state:
                 self.initial_state[var] = repr(value)
@@ -43,32 +42,38 @@ class VariableTracer:
     def stop_tracing(self):
         sys.settrace(None)
 
-    def print_trace_results(self):
-        print("\n📌  \033[1mVariable States\033[0m  📌")
-        print("=" * 50)
+    def collect_trace_results(self):
+        self.output_lines.append("📌  Variable States  📌")
+        self.output_lines.append("=" * 50)
 
         if not self.initial_state:
-            print("No variables were traced. Ensure your script has variable assignments.")
+            self.output_lines.append("No variables were traced. Ensure your script has variable assignments.")
 
         for var in self.initial_state:
             initial = self.initial_state[var]
             final = self.final_state.get(var, initial)
+            self.output_lines.append(f"🟢 Variable `{var}`: Initial = {initial}, Final = {final}")
 
-            status_emoji = "🟢"
-            print(f"{status_emoji} Variable `{var}`: Initial = {initial}, Final = {final}")
+        self.output_lines.append("=" * 50)
 
-        print("=" * 50)
+    def save_trace_results(self, path=None):
+        self.collect_trace_results()
+        if path:
+            with open(path, "w") as out_file:
+                out_file.write("\n".join(self.output_lines))
+        else:
+            print("\n".join(self.output_lines))
 
-def execute_script(filename):
+
+def execute_script(filename, output_path=None):
     tracer = VariableTracer()
     try:
         with open(filename, "r") as f:
             code = f.read()
 
         compiled_code = compile(code, filename, "exec")
-
-        tracer.start_tracing()  # Start tracing before execution
-        exec(compiled_code, globals())  # FIX: Run in the global scope to track variables
+        tracer.start_tracing()
+        exec(compiled_code, globals())
         tracer.stop_tracing()
 
     except FileNotFoundError:
@@ -76,21 +81,18 @@ def execute_script(filename):
     except Exception as e:
         print("\n❌ Error encountered while executing script:")
         print(traceback.format_exc())
-
     finally:
-        tracer.print_trace_results()
+        tracer.save_trace_results(output_path)
 
-# if __name__ == "__main__":
-#     if len(sys.argv) != 2:
-#         print("Usage: python variable_tracer.py <script_file.py>")
-#         sys.exit(1)
-#
-#     script_file = sys.argv[1]
-#     execute_script(script_file)
 
-def main(script_file="test_code.py"):
-    execute_script(script_file)
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: python variable_tracer.py <script_file.py> [output_file.txt]")
+        sys.exit(1)
+
+    script_file = sys.argv[1]
+    output_path = sys.argv[2] if len(sys.argv) > 2 else None
+    execute_script(script_file, output_path)
 
 if __name__ == "__main__":
-    script_file = sys.argv[1] if len(sys.argv) == 2 else "test_code.py"
-    main(script_file)
+    main()
