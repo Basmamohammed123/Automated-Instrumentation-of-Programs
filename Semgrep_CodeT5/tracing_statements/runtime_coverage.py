@@ -5,12 +5,12 @@ import re
 import ast
 # Need coverage.py
 
-def run_coverage(target_file):
-    """Run coverage analysis on the target file."""
+def run_coverage(target_file, save_dir):
+    """Run coverage analysis and save report to specified directory"""
     print("Running coverage.py to track executed lines...")
+    coverage_path = os.path.join(save_dir, "runtime_coverage.txt")
 
     try:
-        # Run the target file with coverage
         subprocess.run(
             ["coverage", "run", "--include", target_file, target_file],
             check=True,
@@ -18,11 +18,11 @@ def run_coverage(target_file):
             text=True
         )
     except subprocess.CalledProcessError as e:
-        logging.error(f"Error running coverage: {e}")  # Key phrase added
+        logging.error(f"Error running coverage: {e}")
         return
 
-    # Always generate and save the report (even if empty)
-    with open("runtime_coverage.txt", "w") as f:
+    # Generate and save report
+    with open(coverage_path, "w") as f:
         result = subprocess.run(
             ["coverage", "report", "-m", "--include", target_file],
             stdout=subprocess.PIPE,
@@ -31,9 +31,7 @@ def run_coverage(target_file):
         )
         f.write(result.stdout)
     
-    # Print the report to terminal
-    print(result.stdout)
-    print("Coverage report generated in 'runtime_coverage.txt'.")
+    print(f"Coverage report generated in '{coverage_path}'")
 
 
 
@@ -91,18 +89,20 @@ def get_function_ranges(file_path: str) -> dict:
     
     return function_ranges
 
-def format_coverage_log(target_file):
+def format_coverage_log(target_file, save_dir):
     """
     Read the coverage output and generate formatted report with function names.
     """
+    coverage_path = os.path.join(save_dir, "runtime_coverage.txt")
+    formatted_path = os.path.join(save_dir, "formatted_coverage_log.txt")
     try:
-        with open("runtime_coverage.txt", "r") as f:
+        with open(coverage_path, "r") as f:
             lines = f.readlines()
-            if not lines:  # Check for empty file
+            if not lines:
                 logging.error("No coverage data found in file.")
                 return
     except FileNotFoundError:
-        print("❌ Error: Coverage data not found. Run analysis first.")
+        logging.error(f"Coverage file not found at {coverage_path}")
         return
 
     formatted_report = []
@@ -158,19 +158,38 @@ def format_coverage_log(target_file):
     else:
         formatted_report.append("\n✅ All lines were executed!\n")
 
-    with open("formatted_coverage_log.txt", "w") as f:
+    with open(formatted_path, "w") as f:
         f.writelines(formatted_report)
     
-    print("Formatted report saved to 'formatted_coverage_log.txt'")
+    print(f"Formatted report saved to '{formatted_path}'")
+
+
+
+
+def get_save_directory():
+    """Prompt user for directory to save coverage reports"""
+    while True:
+        save_dir = input("Enter directory path to save reports (press Enter for current dir): ").strip()
+        if not save_dir:
+            return os.getcwd()
+        
+        if os.path.isdir(save_dir):
+            return save_dir
+        print(f"Directory '{save_dir}' doesn't exist. Creating it...")
+        try:
+            os.makedirs(save_dir, exist_ok=True)
+            return save_dir
+        except Exception as e:
+            print(f"Error creating directory: {e}")
 
 def main():
     target_file = os.path.expanduser("./test_code.py") # Update this with your actual script file
+    save_dir = get_save_directory()
 
-    # Step 1: Run Coverage Analysis
-    run_coverage(target_file)
-
-    # Step 2: Format Coverage Report
-    format_coverage_log(target_file)
+     # Run analysis with user-specified directory
+    run_coverage(target_file, save_dir)
+    format_coverage_log(target_file, save_dir)
 
 if __name__ == "__main__":
     main()
+
