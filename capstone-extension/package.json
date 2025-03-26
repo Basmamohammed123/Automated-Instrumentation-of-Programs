@@ -10,15 +10,14 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:capstone-extension.runSetup",
-    "onCommand:capstone-extension.runAutomatedInstrumentation"
+    "onCommand:capstone-extension.runSetup"
   ],
   "main": "./extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "capstone-extension.runAutomatedInstrumentation",
-        "title": "Run code analysis"
+        "command": "capstone-extension.runSetup",
+        "title": "Setup code analysis"
       },
       {
       "command": "extension.generateTracing",
