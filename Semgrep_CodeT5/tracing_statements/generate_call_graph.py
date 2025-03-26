@@ -95,6 +95,14 @@ def run_program(target_script):
         exec(code, {})
 
 def main():
+    if len(sys.argv) != 3:
+        print("Usage: python script.py <input_file> <output_file>")
+
+    # The two system arguments are ignored here for compatibility
+    input_file = sys.argv[1]
+    output_file = sys.argv[2]
+
+
     # Target Python file to analyze.
     target_file = "test_code.py"
 

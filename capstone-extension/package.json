@@ -21,9 +21,21 @@
         "title": "Run code analysis"
       },
       {
-        "command": "capstone-extension.runSetup",
-        "title": "Setup code analysis"
-      }
+      "command": "extension.generateTracing",
+      "title": "Generate Tracing Statements"
+    },
+    {
+      "command": "extension.createCallGraph",
+      "title": "Create Call Graph"
+    },
+    {
+      "command": "extension.traceVariables",
+      "title": "Trace Variables"
+    },
+    {
+      "command": "extension.analyzeCodeCoverage",
+      "title": "Analyze Code Coverage"
+    }
     ]
   },
   "scripts": {

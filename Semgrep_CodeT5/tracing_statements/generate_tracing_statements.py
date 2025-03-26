@@ -147,7 +147,32 @@ def apply_summaries_and_tracing_to_file(file_path, line_number_blocks, summaries
     with open(file_path, "w") as f:
         f.writelines(updated_lines)
 
+def save_to_new_file(source_file, output_file):
+    """Copies the content of the source file to the output file, overwriting or creating the file."""
+
+    # Check if the output file already exists
+    if os.path.exists(output_file):
+        print(f"{output_file} exists. Overwriting the file.")
+    else:
+        print(f"{output_file} does not exist. Creating a new file.")
+
+    # Copy content from source_file (test_code.py) to output_file
+    with open(source_file, "r") as source:
+        content = source.read()
+
+    with open(output_file, "w") as dest:
+        dest.write(content)
+
+    print(f"Contents copied to {output_file}")
+
+
 def main():
+    if len(sys.argv) != 3:
+        print("Usage: python script.py <input_file> <output_file>")
+        sys.exit(1)
+
+    output_file = sys.argv[2]
+
     print("Testing automated instrumentation...")
     rule_file = "rule.yaml"
     target_file = "test_code.py"
@@ -161,6 +186,6 @@ def main():
     summaries = [generate_summary(block) for block in blocks_content]
 
     apply_summaries_and_tracing_to_file(target_file, line_number_blocks, summaries)
-
+    save_to_new_file(target_file, output_file)
 if __name__ == "__main__":
     main()

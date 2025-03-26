@@ -89,40 +89,36 @@ def get_function_ranges(file_path: str) -> dict:
     
     return function_ranges
 
-def format_coverage_log(target_file, save_dir):
+def format_coverage_log(target_file, coverage_path, formatted_path):
     """
     Read the coverage output and generate formatted report with function names.
     """
-    coverage_path = os.path.join(save_dir, "runtime_coverage.txt")
-    formatted_path = os.path.join(save_dir, "formatted_coverage_log.txt")
     try:
         with open(coverage_path, "r") as f:
             lines = f.readlines()
             if not lines:
-                logging.error("No coverage data found in file.")
+                logging.error("❌ No coverage data found.")
                 return
     except FileNotFoundError:
-        logging.error(f"Coverage file not found at {coverage_path}")
+        logging.error(f"❌ Coverage report not found: {coverage_path}")
         return
 
-    formatted_report = []
-    formatted_report.append("🛠️  Python Code Coverage Report\n")
-    formatted_report.append("=" * 50 + "\n")
+    formatted_report = ["🛠️ Python Code Coverage Report\n", "=" * 50 + "\n"]
 
     target_basename = os.path.basename(target_file)
     missing_lines = set()
     function_ranges = get_function_ranges(target_file)
     coverage_summary = ""
 
-    # Parse coverage data
+    # Parse the raw coverage data
     for line in lines:
         line = line.strip()
         if not line:
             continue
-            
+
         if line.startswith(target_basename):
             parts = line.split()
-            coverage_summary = line  # Capture the summary line
+            coverage_summary = line
             if len(parts) < 5:
                 continue
 
@@ -130,25 +126,20 @@ def format_coverage_log(target_file, save_dir):
             if missing_ranges:
                 missing_lines.update(parse_missing_lines(missing_ranges))
 
-    # Add the original coverage summary line
     if coverage_summary:
         formatted_report.append(f"{coverage_summary}\n\n")
 
-    # Group missed lines by function
+    # Organize missing lines by function
     function_missed = {}
     for line_num in sorted(missing_lines):
         for func_name, (start, end) in function_ranges.items():
             if start <= line_num <= end:
-                if func_name not in function_missed:
-                    function_missed[func_name] = []
-                function_missed[func_name].append(line_num)
+                function_missed.setdefault(func_name, []).append(line_num)
                 break
         else:
-            if 'Global' not in function_missed:
-                function_missed['Global'] = []
-            function_missed['Global'].append(line_num)
+            function_missed.setdefault("Global", []).append(line_num)
 
-    # Build formatted report
+    # Build detailed report
     if function_missed:
         formatted_report.append("\n🚨 **Lines NOT Executed by Function(s):**\n")
         for func, lines in function_missed.items():
@@ -158,10 +149,11 @@ def format_coverage_log(target_file, save_dir):
     else:
         formatted_report.append("\n✅ All lines were executed!\n")
 
+    # Save the final report
     with open(formatted_path, "w") as f:
         f.writelines(formatted_report)
-    
-    print(f"Formatted report saved to '{formatted_path}'")
+
+    print("📄 Formatted coverage report saved to:", formatted_path)
 
 
 
@@ -183,12 +175,17 @@ def get_save_directory():
             print(f"Error creating directory: {e}")
 
 def main():
-    target_file = os.path.expanduser("./test_code.py") # Update this with your actual script file
-    save_dir = get_save_directory()
+    import sys
+    if len(sys.argv) != 3:
+        print("Usage: python coverage_analyzer.py <target_file.py> <output_path>")
+        sys.exit(1)
 
-     # Run analysis with user-specified directory
-    run_coverage(target_file, save_dir)
-    format_coverage_log(target_file, save_dir)
+    target_file = sys.argv[1]
+    output_path = sys.argv[2]
+    formatted_path = output_path.replace(".txt", "_formatted.txt")
+
+    run_coverage(target_file, output_path)
+    format_coverage_log(target_file, output_path, formatted_path)
 
 if __name__ == "__main__":
     main()

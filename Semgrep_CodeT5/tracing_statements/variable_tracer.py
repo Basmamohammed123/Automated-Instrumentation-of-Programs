@@ -3,11 +3,12 @@ import traceback
 import types
 
 class VariableTracer:
-    def __init__(self):
+    def __init__(self, output_path=None):
         self.initial_state = {}
         self.final_state = {}
         self.ignored_vars = {"self", "script_file", "filename", "tracer", "f", "code", "compiled_code"}
         self.output_lines = []
+        self.output_path = output_path
 
     def trace_calls(self, frame, event, arg):
         if event == "call":
@@ -56,13 +57,20 @@ class VariableTracer:
 
         self.output_lines.append("=" * 50)
 
-    def save_trace_results(self, path=None):
+    def output_results(self):
         self.collect_trace_results()
-        if path:
-            with open(path, "w") as out_file:
-                out_file.write("\n".join(self.output_lines))
-        else:
-            print("\n".join(self.output_lines))
+
+        output_text = "\n".join(self.output_lines)
+        print(output_text)
+
+        # Save to file
+        if self.output_path:
+            try:
+                with open(self.output_path, "w") as out_file:
+                    out_file.write(output_text)
+                print(f"\n✅ Trace results saved to: {self.output_path}")
+            except Exception as e:
+                print(f"\n❌ Error saving trace results: {e}")
 
 
 def execute_script(filename, output_path=None):
@@ -82,17 +90,12 @@ def execute_script(filename, output_path=None):
         print("\n❌ Error encountered while executing script:")
         print(traceback.format_exc())
     finally:
-        tracer.save_trace_results(output_path)
+        tracer.output_results()
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python variable_tracer.py <script_file.py> [output_file.txt]")
-        sys.exit(1)
-
-    script_file = sys.argv[1]
-    output_path = sys.argv[2] if len(sys.argv) > 2 else None
-    execute_script(script_file, output_path)
+    script_file = sys.argv[1] if len(sys.argv) > 1 else "test_code.py"
+    execute_script(script_file)
 
 if __name__ == "__main__":
     main()
