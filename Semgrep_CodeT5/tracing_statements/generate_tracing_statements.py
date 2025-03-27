@@ -171,7 +171,7 @@ def main():
         print("Usage: python script.py <input_file> <output_file>")
         sys.exit(1)
 
-    output_file = sys.argv[2]
+    output_file = sys.argv[1]
 
     print("Testing automated instrumentation...")
     rule_file = "rule.yaml"

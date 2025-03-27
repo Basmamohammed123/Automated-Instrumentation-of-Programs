@@ -1,6 +1,7 @@
 import sys
 import traceback
 import types
+import os
 
 class VariableTracer:
     def __init__(self, output_path=None):
@@ -57,23 +58,22 @@ class VariableTracer:
 
         self.output_lines.append("=" * 50)
 
-    def output_results(self):
+    def output_results(self, output_file):
         self.collect_trace_results()
 
         output_text = "\n".join(self.output_lines)
         print(output_text)
 
-        # Save to file
-        if self.output_path:
-            try:
-                with open(self.output_path, "w") as out_file:
-                    out_file.write(output_text)
-                print(f"\n✅ Trace results saved to: {self.output_path}")
-            except Exception as e:
-                print(f"\n❌ Error saving trace results: {e}")
+        if os.path.exists(output_file):
+            print(f"{output_file} exists. Overwriting the file.")
+        else:
+            print(f"{output_file} does not exist. Creating a new file.")
+
+        with open(output_file, "w") as dest:
+            dest.write(output_text)
 
 
-def execute_script(filename, output_path=None):
+def execute_script(filename, output_file):
     tracer = VariableTracer()
     try:
         with open(filename, "r") as f:
@@ -90,12 +90,12 @@ def execute_script(filename, output_path=None):
         print("\n❌ Error encountered while executing script:")
         print(traceback.format_exc())
     finally:
-        tracer.output_results()
+        tracer.output_results(output_file)
 
 
 def main():
     script_file = sys.argv[1] if len(sys.argv) > 1 else "test_code.py"
-    execute_script(script_file)
+    execute_script(script_file, sys.argv[2])
 
 if __name__ == "__main__":
     main()

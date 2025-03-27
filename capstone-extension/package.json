@@ -1,8 +1,14 @@
 {
-  "name": "capstone-extension",
-  "displayName": "Automated-instrumentation-1.0",
+  "name": "automated-instrumentation",
+  "displayName": "Automated-instrumentation",
   "description": "VS Code extension for the Automated Instrumentation project",
-  "version": "0.0.3",
+  "version": "1.1.0",
+  "publisher": "VirajPatel1606",
+  "icon": "resources/Logo.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Basmamohammed123/Automated-Instrumentation-of-Programs.git"
+  },
   "engines": {
     "vscode": "^1.97.0"
   },

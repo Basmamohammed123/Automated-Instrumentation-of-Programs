@@ -8,7 +8,8 @@ import ast
 def run_coverage(target_file, save_dir):
     """Run coverage analysis and save report to specified directory"""
     print("Running coverage.py to track executed lines...")
-    coverage_path = os.path.join(save_dir, "runtime_coverage.txt")
+    location = os.path.dirname(os.path.abspath(save_dir))
+    coverage_path = os.path.join(location, "runtime_coverage.txt")
 
     try:
         subprocess.run(
@@ -182,10 +183,12 @@ def main():
 
     target_file = sys.argv[1]
     output_path = sys.argv[2]
-    formatted_path = output_path.replace(".txt", "_formatted.txt")
+    formatted_path = output_path.replace("_trace_output.txt", "_formatted.txt")
 
     run_coverage(target_file, output_path)
-    format_coverage_log(target_file, output_path, formatted_path)
+    location = os.path.dirname(os.path.abspath(output_path))
+    coverage_path = os.path.join(location, "runtime_coverage.txt")
+    format_coverage_log(target_file, coverage_path, formatted_path)
 
 if __name__ == "__main__":
     main()

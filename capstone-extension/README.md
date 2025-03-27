@@ -1,65 +1,60 @@
-# capstone-extension README
+# Automated Instrumentation README
 
-This is the README for your extension "capstone-extension". After writing up a brief description, we recommend including the following sections.
+The Automated Instrumentation Extension for VS Code enhances the development process by automating the instrumentation of Python programs. This extension enables easy integration of code coverage analysis, variable tracing, and function call graph generation into your Python projects. It automatically tracks the execution flow, collects valuable runtime information, and generates detailed reports, making it easier for developers to identify untested code paths, debug issues, and optimize performance. With this extension, you can improve both the quality and efficiency of your development workflow.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+The Automated Instrumentation Extension offers the following key features to enhance your Python development workflow:
 
-For example if there is an image subfolder under your extension project workspace:
+Setup Code Analysis
+Prepares the environment by downloading all necessary dependencies and scripts to set up the automated instrumentation process. This command ensures everything is ready for code analysis, enabling you to focus on your development without worrying about setup.
 
-\!\[feature X\]\(images/feature-x.png\)
+Trace Variables
+Tracks and records the values of variables as the program executes, capturing data changes throughout runtime. This provides real-time insights into variable states, helping identify unexpected behavior or bugs.
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+Create Call Graph
+Constructs a dynamic function call graph by tracing caller-callee relationships. This visual representation of function interactions can assist with understanding the execution flow and optimizing the structure of your code.
+
+Analyze Code Coverage
+Monitors and reports which lines of code are executed during the program's execution. The command identifies unexecuted paths, providing visibility into areas of the code that may need further testing.
+
+Generate Tracing Statements
+Automatically injects tracing logs into the code to capture function calls and their parameters during execution. This helps in tracking the flow of the program and debugging issues by providing detailed traces of runtime activity.
+
+
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+To use the Automated Instrumentation Extension, the following dependencies are required:
 
-## Extension Settings
+1. Visual Studio Code
+The extension is designed to work within the Visual Studio Code environment. Ensure you have the latest version of VS Code installed.
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+2. Python 3.7+
+Python 3.7 or newer is required for running the code analysis and instrumentation scripts. Ensure Python is installed and available in your system's PATH.
 
-For example:
+3. Git
+Git is required for managing and versioning the extension's source code. Ensure Git is installed on your system.
 
-This extension contributes the following settings:
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+## Instructions
+Follow these steps to install and set up the Automated Instrumentation Extension in Visual Studio Code:
 
-## Known Issues
+1. Install the Extension
+Open Visual Studio Code and go to the Extensions view (Ctrl+Shift+X or Cmd+Shift+X on macOS).
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+Search for Automated Instrumentation Extension and click Install.
 
-## Release Notes
+2. Run the Setup Command
+Once the extension is installed, you need to set up the virtual environment:
 
-Users appreciate release notes as you update your extension.
+Open the Command Palette (Ctrl+Shift+P or Cmd+Shift+P on macOS).
 
-### 1.0.0
+Search for and select the command: Automated Instrumentation: Setup Environment.
 
-Initial release of ...
+The extension will now set up the virtual environment. You will see a notification once the setup is complete. 
 
-### 1.0.1
+### Important: Wait for the "Virtual environment setup complete!" notification before proceeding. Do not proceed with any further actions until this notification appears.
 
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code.  Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux)
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux)
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+3. Use the Extension
+Once the setup is complete, you can start using the extension.
