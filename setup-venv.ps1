@@ -10,10 +10,25 @@ $wslInstalled = wsl --list --verbose 2>&1
 if ($wslInstalled -match "No installed distributions") {
     Write-Host "WSL is not installed. Installing Ubuntu..."
     wsl --install
-    # Restart the computer to finish WSL installation (you may automate this part as well)
     Write-Host "Please restart your computer to complete WSL installation."
     exit
 } else {
+    # Check if a default distro is set
+    $defaultDistro = wsl --list --verbose | Select-String -Pattern "Default" | ForEach-Object { $_.Line.Trim() }
+    if (-not $defaultDistro) {
+        Write-Host "No default distribution set. Setting up Ubuntu as default..."
+        wsl --set-default Ubuntu
+    }
+
+    # Check if Ubuntu is installed
+    $ubuntuInstalled = wsl --list --verbose | Select-String "Ubuntu"
+    if (-not $ubuntuInstalled) {
+        Write-Host "Ubuntu distribution not found. Installing Ubuntu..."
+        wsl --install -d Ubuntu
+        Write-Host "Ubuntu installation is in progress, please wait..."
+        exit
+    }
+
     Write-Host "WSL is installed. Continuing with setup..."
 
     # Setting up Ubuntu environment in WSL
