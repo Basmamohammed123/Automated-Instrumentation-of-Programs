@@ -34,7 +34,6 @@ if ($wslInstalled -match "No installed distributions") {
     # Setting up Ubuntu environment in WSL
     Write-Host "Creating and setting up virtual environment in WSL..."
 
-    # Use the converted WSL path for the project directory
     wsl bash -c "cd '$wslPath' && \
                  python3 -m venv .venv && \
                  source .venv/bin/activate && \
